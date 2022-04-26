@@ -51,10 +51,10 @@ setup(
     author='Welho',
     author_email='tumbbi.kangas@gmail.com',
     url='https://github.com/welhoilija/django-web3-auth',
+    include_package_data=True,
     packages=[
         'web3auth',
     ],
-    include_package_data=False,
     install_requires=['ethereum', 'rlp', 'eth_utils', 'Django>=4.0'],
     license="MIT",
     zip_safe=False,
