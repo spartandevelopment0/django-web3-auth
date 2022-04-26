@@ -54,7 +54,7 @@ setup(
     packages=[
         'web3auth',
     ],
-    include_package_data=True,
+    include_package_data=False,
     install_requires=['ethereum', 'rlp', 'eth_utils', 'Django>=4.0'],
     license="MIT",
     zip_safe=False,
