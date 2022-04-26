@@ -2,7 +2,6 @@ import string
 
 from django import forms
 from django.contrib.auth import get_user_model
-from django.utils.translation import ugettext_lazy as _
 
 from web3auth.settings import app_settings
 from .utils import validate_eth_address
@@ -23,7 +22,7 @@ class LoginForm(forms.Form):
             sig[130:] != '1b' and sig[130:] != '1c',
             not all(c in string.hexdigits for c in sig[2:])
         ]):
-            raise forms.ValidationError(_('Invalid signature'))
+            raise forms.ValidationError('Invalid signature')
         return sig
 
 

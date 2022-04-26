@@ -2,7 +2,6 @@ import sha3
 import ethereum
 from eth_utils import is_hex_address
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 from ethereum.utils import ecrecover_to_pub
 
 
@@ -28,6 +27,6 @@ def recover_to_addr(msg, sig):
 def validate_eth_address(value):
     if not is_hex_address(value):
         raise forms.ValidationError(
-            _('%(value)s is not a valid Ethereum address'),
+            '%s is not a valid Ethereum address' % value,
             params={'value': value},
         )
