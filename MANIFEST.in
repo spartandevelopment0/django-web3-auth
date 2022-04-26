@@ -1,0 +1,1 @@
+recursive-include web3auth *.html *.png *.gif *js *.css *jpg *jpeg *svg *py
