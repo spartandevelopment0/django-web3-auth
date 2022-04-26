@@ -42,13 +42,12 @@ if sys.argv[-1] == 'tag':
     sys.exit()
 
 readme = open('README.rst').read()
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 setup(
     name='django-web3-auth',
     version=version,
     description="""django-web3-auth is a pluggable Django app that enables login/signup via an Ethereum wallet (a la CryptoKitties). The user authenticates themselves by digitally signing the session key with their wallet's private key.""",  # noqa: E501
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     author='Bearle',
     author_email='tech@bearle.ru',
     url='https://github.com/Bearle/django-web3-auth',
