@@ -16,6 +16,7 @@ function getCookie(name) {
 
 function loginWithSignature(address, signature, login_url, onLoginRequestError, onLoginFail, onLoginSuccess) {
     var request = new XMLHttpRequest();
+    alert(login_url);
     request.open('POST', login_url, true);
     request.onload = function () {
         if (request.status >= 200 && request.status < 400) {
@@ -50,18 +51,21 @@ function loginWithSignature(address, signature, login_url, onLoginRequestError, 
     request.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
     var formData = 'address=' + address + '&signature=' + signature;
     request.send(formData);
+    alert(formData);
 }
 
 function checkWeb3(callback) {
-    web3.eth.getAccounts(function (err, accounts) { // Check for wallet being locked
-        if (err) {
-            throw err;
-        }
-        callback(accounts.length !== 0);
-    });
+
+        var accounts = [];
+        if (window.ethereum) {
+            callback(accounts.length == 0);
+
+            
+
+    };
 }
 
-function web3Login(login_url, onTokenRequestFail, onTokenSignFail, onTokenSignSuccess, // used in this function
+async function web3Login(login_url, onTokenRequestFail, onTokenSignFail, onTokenSignSuccess, // used in this function
                    onLoginRequestError, onLoginFail, onLoginSuccess) {
     // used in loginWithSignature
 
@@ -76,28 +80,37 @@ function web3Login(login_url, onTokenRequestFail, onTokenSignFail, onTokenSignSu
     var request = new XMLHttpRequest();
     request.open('GET', login_url, true);
 
-    request.onload = function () {
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+
+    provider.send("eth_requestAccounts", []);
+
+    request.onload = async function () {
         if (request.status >= 200 && request.status < 400) {
             // Success!
             var resp = JSON.parse(request.responseText);
             var token = resp.data;
             console.log("Token: " + token);
-            var msg = web3.toHex(token);
-            var from = web3.eth.accounts[0];
-            web3.personal.sign(msg, from, function (err, result) {
-                if (err) {
-                    if (typeof onTokenSignFail == 'function') {
-                        onTokenSignFail(err);
-                    }
-                    console.log("Failed signing message \n" + msg + "\n - " + err);
-                } else {
-                    console.log("Signed message: " + result);
-                    if (typeof onTokenSignSuccess == 'function') {
-                        onTokenSignSuccess(result);
-                    }
-                    loginWithSignature(from, result, login_url, onLoginRequestError, onLoginFail, onLoginSuccess);
+            var msg = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(token));
+            const from = provider.getSigner();
+            var signedmsg = await from.signMessage(token)
+            var address = await from.getAddress()
+            console.log("address", address, "signedmsg", signedmsg, "msg", msg);
+            console.log("Account:", address, "signedmsg:", signedmsg);
+            if (!signedmsg) {
+                if (typeof onTokenSignFail == 'function') {
+                    onTokenSignFail(err);
                 }
-            });
+                console.log("Failed signing message \n" + msg + "\n - " + err);
+                alert("fail on signing");
+            } else {
+                console.log("Signed message: " + signedmsg);
+                if (typeof onTokenSignSuccess == 'function') {
+                    onTokenSignSuccess(signedmsg);
+                }
+                loginWithSignature(address, signedmsg, login_url, onLoginRequestError, onLoginFail, onLoginSuccess);
+                
+            };
+
 
         } else {
             // We reached our target server, but it returned an error
@@ -116,7 +129,12 @@ function web3Login(login_url, onTokenRequestFail, onTokenSignFail, onTokenSignSu
         }
     };
     request.send();
+    
 }
+
+
+
+
 
 
 
