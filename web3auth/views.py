@@ -11,6 +11,7 @@ from django.views.decorators.http import require_http_methods
 
 from web3auth.forms import LoginForm, SignupForm
 from web3auth.settings import app_settings
+from customers.models import User
 
 
 def get_redirect_url(request):
@@ -25,6 +26,7 @@ def get_redirect_url(request):
             url = settings.LOGIN_REDIRECT_URL
         return url
 
+from web3auth.utils import recover_to_addr
 
 @require_http_methods(["GET", "POST"])
 def login_api(request):
@@ -41,14 +43,19 @@ def login_api(request):
         else:
             form = LoginForm(token, request.POST)
             if form.is_valid():
-                signature, address = form.cleaned_data.get("signature"), form.cleaned_data.get("address")
+                signature = form.cleaned_data.get("signature")
+                address = form.cleaned_data.get("address")
                 del request.session['login_token']
                 user = authenticate(request, token=token, address=address, signature=signature)
                 if user:
+
                     login(request, user, 'web3auth.backend.Web3Backend')
 
                     return JsonResponse({'success': True, 'redirect_url': get_redirect_url(request)})
                 else:
+                    if User.objects.filter(address=address).exists():
+                        if address == recover_to_addr(token, signature):
+                            return JsonResponse({"success": False, "error": "User exists but auth failed" + " , address:" + address + " recovered address:" + recover_to_addr(token, signature)})
                     error = "Can't find a user for the provided signature with address %s" % address
                     return JsonResponse({'success': False, 'error': error})
             else:
@@ -101,3 +108,4 @@ def signup_view(request, template_name='web3auth/signup.html'):
     return render(request,
                   template_name,
                   {'form': form})
+
