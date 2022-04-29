@@ -16,7 +16,6 @@ function getCookie(name) {
 
 function loginWithSignature(address, signature, login_url, onLoginRequestError, onLoginFail, onLoginSuccess) {
     var request = new XMLHttpRequest();
-    alert(login_url);
     request.open('POST', login_url, true);
     request.onload = function () {
         if (request.status >= 200 && request.status < 400) {
@@ -51,7 +50,6 @@ function loginWithSignature(address, signature, login_url, onLoginRequestError, 
     request.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
     var formData = 'address=' + address + '&signature=' + signature;
     request.send(formData);
-    alert(formData);
 }
 
 function checkWeb3(callback) {
@@ -101,7 +99,6 @@ async function web3Login(login_url, onTokenRequestFail, onTokenSignFail, onToken
                     onTokenSignFail(err);
                 }
                 console.log("Failed signing message \n" + msg + "\n - " + err);
-                alert("fail on signing");
             } else {
                 console.log("Signed message: " + signedmsg);
                 if (typeof onTokenSignSuccess == 'function') {
