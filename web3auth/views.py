@@ -108,4 +108,3 @@ def signup_view(request, template_name='web3auth/signup.html'):
     return render(request,
                   template_name,
                   {'form': form})
-
