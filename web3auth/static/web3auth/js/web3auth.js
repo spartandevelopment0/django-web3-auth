@@ -128,10 +128,3 @@ async function web3Login(login_url, onTokenRequestFail, onTokenSignFail, onToken
     request.send();
     
 }
-
-
-
-
-
-
-
