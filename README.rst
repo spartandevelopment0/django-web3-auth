@@ -16,4 +16,4 @@ I also updated the javascript to work with new versions of metamask and switched
     VERY customizable - uses Django settings, allows for custom User model
     Vanilla Javascript helpers included
 
-![alt text](https://github.com/welhoilija/django-web3-auth/blob/main/image.jpg?raw=true)
+![alt text](https://github.com/welhoilija/django-web3-auth/blob/master/Screenshot%20from%202022-05-04%2013-03-11.png)
