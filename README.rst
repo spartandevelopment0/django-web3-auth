@@ -1,3 +1,4 @@
+#All usage at your own responsibility
 #Django authentication backend for WEB3
 
 Bearles django-web3-auth for later versions of django and python (im using 4.xx).
