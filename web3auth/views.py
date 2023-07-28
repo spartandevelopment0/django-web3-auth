@@ -1,110 +1,125 @@
-import json
 import random
 import string
 
-from django.conf import settings
-from django.contrib.auth import login, authenticate
-from django.http import JsonResponse
-from django.shortcuts import render, redirect, reverse
-from django.urls.exceptions import NoReverseMatch
-from django.views.decorators.http import require_http_methods
+from dj_rest_auth.views import LoginView
 
-from web3auth.forms import LoginForm, SignupForm
-from web3auth.settings import app_settings
-from customers.models import User
+from django.contrib.auth import authenticate
+from rest_framework.response import Response
+from rest_framework import status
 
+from .models import get_token_model
+from .app_settings import api_settings
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import Web3SignupLoginSerializer
+from django.forms import ValidationError
+from django.utils import timezone
+from .utils import jwt_encode
 
-def get_redirect_url(request):
-    if request.GET.get('next'):
-        return request.GET.get('next')
-    elif request.POST.get('next'):
-        return request.POST.get('next')
-    elif settings.LOGIN_REDIRECT_URL:
-        try:
-            url = reverse(settings.LOGIN_REDIRECT_URL)
-        except NoReverseMatch:
-            url = settings.LOGIN_REDIRECT_URL
-        return url
+class Web3SignupLoginView(LoginView):
+    serializer_class = Web3SignupLoginSerializer
+    permission_classes = (AllowAny,)
 
-from web3auth.utils import recover_to_addr
+    def get(self, request, *args, **kwargs):
+        login_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
+        request.session['login_token'] = login_token
+        return Response({'data': login_token, 'success': True})
 
-@require_http_methods(["GET", "POST"])
-def login_api(request):
-    if request.method == 'GET':
-        token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for i in range(32))
-        request.session['login_token'] = token
-        return JsonResponse({'data': token, 'success': True})
-    else:
-        token = request.session.get('login_token')
-        if not token:
-            return JsonResponse({'error': 
-                "No login token in session, please request token again by sending GET request to this url",
-                'success': False})
-        else:
-            form = LoginForm(token, request.POST)
-            if form.is_valid():
-                signature = form.cleaned_data.get("signature")
-                address = form.cleaned_data.get("address")
-                del request.session['login_token']
-                user = authenticate(request, token=token, address=address, signature=signature)
-                if user:
+    def post(self, request, *args, **kwargs):
+        self.request = request
+        self.serializer = self.get_serializer(data=self.request.data)
+        self.serializer.is_valid(raise_exception=True)
 
-                    login(request, user, 'web3auth.backend.Web3Backend')
+        self.web3_login()
+        return self.get_web3_response()
+    
+    def get_response_serializer(self):
+        if api_settings.USE_JWT:
 
-                    return JsonResponse({'success': True, 'redirect_url': get_redirect_url(request)})
-                else:
-                    if User.objects.filter(address=address).exists():
-                        if address == recover_to_addr(token, signature):
-                            return JsonResponse({"success": False, "error": "User exists but auth failed" + " , address:" + address + " recovered address:" + recover_to_addr(token, signature)})
-                    error = "Can't find a user for the provided signature with address %s" % address
-                    return JsonResponse({'success': False, 'error': error})
+            if api_settings.JWT_AUTH_RETURN_EXPIRATION:
+                response_serializer = api_settings.JWT_SERIALIZER_WITH_EXPIRATION
             else:
-                return JsonResponse({'success': False, 'error': json.loads(form.errors.as_json())})
+                response_serializer = api_settings.JWT_SERIALIZER
+
+        else:
+            response_serializer = api_settings.TOKEN_SERIALIZER
+        return response_serializer
 
 
-@require_http_methods(["POST"])
-def signup_api(request):
-    if not app_settings.WEB3AUTH_SIGNUP_ENABLED:
-        return JsonResponse({'success': False, 'error': "Sorry, signup's are currently disabled"})
-    form = SignupForm(request.POST)
-    if form.is_valid():
-        user = form.save(commit=False)
-        addr_field = app_settings.WEB3AUTH_USER_ADDRESS_FIELD
-        setattr(user, addr_field, form.cleaned_data[addr_field])
-        user.save()
-        login(request, user, 'web3auth.backend.Web3Backend')
-        return JsonResponse({'success': True, 'redirect_url': get_redirect_url(request)})
-    else:
-        return JsonResponse({'success': False, 'error': json.loads(form.errors.as_json())})
+    def web3_login(self):
+        address = self.serializer.validated_data.get("address")
+        signature = self.serializer.validated_data.get("signature")
+        token = self.request.session.get('login_token')
+        
+        if not token:
+            raise ValidationError("No login token in session, please request token again by sending GET request to this url")
 
+        user = authenticate(request=self.request, token=token, address=address, signature=signature)
 
-@require_http_methods(["GET", "POST"])
-def signup_view(request, template_name='web3auth/signup.html'):
-    """
-    1. Creates an instance of a SignupForm.
-    2. Checks if the registration is enabled.
-    3. If the registration is closed or form has errors, returns form with errors
-    4. If the form is valid, saves the user without saving to DB
-    5. Sets the user address from the form, saves it to DB
-    6. Logins the user using web3auth.backend.Web3Backend
-    7. Redirects the user to LOGIN_REDIRECT_URL or 'next' in get or post params
-    :param request: Django request
-    :param template_name: Template to render
-    :return: rendered template with form
-    """
-    form = SignupForm()
-    if not app_settings.WEB3AUTH_SIGNUP_ENABLED:
-        form.add_error(None, "Sorry, signup's are currently disabled")
-    else:
-        if request.method == 'POST':
-            form = SignupForm(request.POST)
-            if form.is_valid():
-                user = form.save(commit=False)
-                addr_field = app_settings.WEB3AUTH_USER_ADDRESS_FIELD
-                setattr(user, addr_field, form.cleaned_data[addr_field])
-                user.save()
-                login(request, user, 'web3auth.backend.Web3Backend')
-                return redirect(get_redirect_url(request))
-    return render(request,
-                  template_name,
-                  {'form': form})
+        if user is None:
+            raise ValidationError('Authentication with provided address and signature failed.')
+
+        if not user.is_active:
+            raise ValidationError('This user is not active.')
+
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
+
+        del self.request.session['login_token']
+
+        self.user = user
+
+        token_model = get_token_model()
+
+        if api_settings.USE_JWT:
+            self.access_token, self.refresh_token = jwt_encode(self.user)
+        elif token_model:
+            self.token = api_settings.TOKEN_CREATOR(token_model, self.user, self.serializer)
+
+        if api_settings.SESSION_LOGIN:
+            self.process_login()
+
+    def get_web3_response(self):
+        serializer_class = self.get_response_serializer()
+
+        if api_settings.USE_JWT:
+            from rest_framework_simplejwt.settings import (
+                api_settings as jwt_settings,
+            )
+            access_token_expiration = (timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME)
+            refresh_token_expiration = (timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME)
+            return_expiration_times = api_settings.JWT_AUTH_RETURN_EXPIRATION
+            auth_httponly = api_settings.JWT_AUTH_HTTPONLY
+
+            data = {
+                'user': self.user,
+                'access': self.access_token,
+            }
+
+            if not auth_httponly:
+                data['refresh'] = self.refresh_token
+            else:
+                data['refresh'] = ""
+
+            if return_expiration_times:
+                data['access_expiration'] = access_token_expiration
+                data['refresh_expiration'] = refresh_token_expiration
+
+            serializer = serializer_class(
+                instance=data,
+                context=self.get_serializer_context(),
+            )
+        elif self.token:
+            serializer = serializer_class(
+                instance=self.token,
+                context=self.get_serializer_context(),
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        response = Response(serializer.data, status=status.HTTP_200_OK)
+        if api_settings.USE_JWT:
+            from .jwt_auth import set_jwt_cookies
+            set_jwt_cookies(response, self.access_token, self.refresh_token)
+        return response

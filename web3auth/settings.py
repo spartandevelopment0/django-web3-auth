@@ -15,7 +15,7 @@ class AppSettings(object):
         """
         Specifies field to be used in signup form for a new User model
         """
-        return getattr(django_settings, "WEB3AUTH_USER_SIGNUP_FIELDS", ['email'])
+        return getattr(django_settings, "WEB3AUTH_USER_SIGNUP_FIELDS", [])
 
     @property
     def WEB3AUTH_SIGNUP_ENABLED(self):
