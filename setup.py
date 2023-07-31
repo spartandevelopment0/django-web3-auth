@@ -46,7 +46,7 @@ readme = open('README.rst').read()
 setup(
     name='django-web3-auth',
     version=version,
-    description="""Django web3 auth forked and updated from Bearle""",  
+    description="""Django web3 auth forked and updated from Bearle""",
     long_description=readme,
     author='Welho',
     author_email='tumbbi.kangas@gmail.com',
@@ -56,9 +56,10 @@ setup(
         'web3auth',
     ],
     install_requires=[
-        'ethereum',
+        'web3',
         'rlp',
         'eth_utils',
+        'eth_hash',
         'Django>=4.0',
         'djangorestframework',
         'djangorestframework-simplejwt',
