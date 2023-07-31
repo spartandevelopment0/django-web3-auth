@@ -55,7 +55,15 @@ setup(
     packages=[
         'web3auth',
     ],
-    install_requires=['ethereum', 'rlp', 'eth_utils', 'Django>=4.0'],
+    install_requires=[
+        'ethereum',
+        'rlp',
+        'eth_utils',
+        'Django>=4.0',
+        'djangorestframework',
+        'djangorestframework-simplejwt',
+        'django-allauth'
+    ],
     license="MIT",
     zip_safe=False,
     keywords='django-web3-auth',

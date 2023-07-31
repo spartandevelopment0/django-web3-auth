@@ -1,14 +1,8 @@
-import string
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from web3auth.settings import app_settings
-from .utils import validate_eth_address, recover_to_addr
+from web3auth.dj_rest_auth.serializers import LoginSerializer
+
+from .utils import validate_eth_address
 from .backend import Web3Backend
-
-from dj_rest_auth.serializers import LoginSerializer
-from dj_rest_auth.registration.serializers import RegisterSerializer
-from rest_framework import serializers
-
 
 class Web3SignupLoginSerializer(LoginSerializer):
     signature = serializers.CharField(max_length=132)

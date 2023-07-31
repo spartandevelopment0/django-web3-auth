@@ -6,7 +6,7 @@ from rest_framework.authentication import CSRFCheck
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
-from .app_settings import api_settings
+from web3auth.app_settings import api_settings
 
 
 def set_jwt_access_cookie(response, access_token):

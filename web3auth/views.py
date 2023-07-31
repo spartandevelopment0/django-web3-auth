@@ -1,21 +1,21 @@
 import random
 import string
 
-from dj_rest_auth.views import LoginView
-
-from django.contrib.auth import authenticate
-from rest_framework.response import Response
 from rest_framework import status
-
-from .models import get_token_model
-from .app_settings import api_settings
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework import status
-from .serializers import Web3SignupLoginSerializer
 from django.forms import ValidationError
 from django.utils import timezone
-from .utils import jwt_encode
+from django.contrib.auth import authenticate
+
+
+from web3auth.dj_rest_auth.views import LoginView
+from web3auth.dj_rest_auth.models import get_token_model
+from web3auth.dj_rest_auth.utils import jwt_encode
+from .app_settings import api_settings
+from .serializers import Web3SignupLoginSerializer
+
+
 
 class Web3SignupLoginView(LoginView):
     serializer_class = Web3SignupLoginSerializer
@@ -120,6 +120,6 @@ class Web3SignupLoginView(LoginView):
 
         response = Response(serializer.data, status=status.HTTP_200_OK)
         if api_settings.USE_JWT:
-            from .jwt_auth import set_jwt_cookies
+            from web3auth.dj_rest_auth.jwt_auth import set_jwt_cookies
             set_jwt_cookies(response, self.access_token, self.refresh_token)
         return response

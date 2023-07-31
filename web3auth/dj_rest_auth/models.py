@@ -2,7 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.authtoken.models import Token as DefaultTokenModel
 
-from dj_rest_auth.app_settings import api_settings
+from web3auth.app_settings import api_settings
+
 
 def get_token_model():
     token_model = api_settings.TOKEN_MODEL
@@ -23,5 +24,6 @@ def get_token_model():
             'or set TOKEN_MODEL to None'
         )
     return token_model
+
 
 TokenModel = get_token_model()

@@ -31,15 +31,3 @@ def validate_eth_address(value):
             params={'value': value},
         )
 
-
-def jwt_encode(user):
-    from dj_rest_auth.app_settings import api_settings
-
-    JWTTokenClaimsSerializer = api_settings.JWT_TOKEN_CLAIMS_SERIALIZER
-
-    refresh = JWTTokenClaimsSerializer.get_token(user)
-    return refresh.access_token, refresh
-
-
-def format_lazy(s, *args, **kwargs):
-    return s.format(*args, **kwargs)
