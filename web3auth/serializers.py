@@ -6,7 +6,7 @@ from .backend import Web3Backend
 
 class Web3SignupLoginSerializer(LoginSerializer):
     signature = serializers.CharField(max_length=132)
-    address = serializers.CharField(max_length=42, validators=[validate_eth_address])
+    wallet_address = serializers.CharField(max_length=42, validators=[validate_eth_address])
     
     def get_fields(self):
         fields = super().get_fields()
@@ -18,7 +18,7 @@ class Web3SignupLoginSerializer(LoginSerializer):
         web3_auth_backend = Web3Backend()
         self.user = web3_auth_backend.authenticate(
             request=self.context.get('request'),
-            address=attrs['address'],
+            wallet_address=attrs['wallet_address'],
             token=self.context.get('request').session.get('login_token'),
             signature=attrs['signature']
         )

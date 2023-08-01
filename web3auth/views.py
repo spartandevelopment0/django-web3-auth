@@ -48,14 +48,14 @@ class Web3SignupLoginView(LoginView):
 
 
     def web3_login(self):
-        address = self.serializer.validated_data.get("address")
+        wallet_address = self.serializer.validated_data.get("wallet_address")
         signature = self.serializer.validated_data.get("signature")
         token = self.request.session.get('login_token')
         
         if not token:
             raise ValidationError("No login token in session, please request token again by sending GET request to this url")
 
-        user = authenticate(request=self.request, token=token, address=address, signature=signature)
+        user = authenticate(request=self.request, token=token, wallet_address=wallet_address, signature=signature)
 
         if user is None:
             raise ValidationError('Authentication with provided address and signature failed.')

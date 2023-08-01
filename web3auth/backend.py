@@ -17,27 +17,27 @@ class Web3Backend(backends.ModelBackend):
     def authenticate(
             self,
             request,
-            address,
+            wallet_address,
             token,
             signature
     ) -> Optional[User]:
         # check if the address the user has provided matches the signature
-        if address != recover_to_addr(token, signature):
+        if wallet_address != recover_to_addr(token, signature):
             raise ValueError('Wallet address does not match signature')
         else:
             # get address field for the user model
             kwargs = {
-                f"{ADDRESS_FIELD}__iexact": address
+                f"{ADDRESS_FIELD}__iexact": wallet_address
             }
             # try to get user with provided data
             user = User.objects.filter(**kwargs).first()
             if user is None:
                 # create the user if it does not exist
-                return self.create_user(address)
+                return self.create_user(wallet_address)
             return user
 
-    def create_user(self, address):
-        user = self._gen_user(address)
+    def create_user(self, wallet_address):
+        user = self._gen_user(wallet_address)
         fields = [field.name for field in User._meta.fields]
         if (
                 ADDRESS_FIELD != DEFAULT_ADDRESS_FIELD
@@ -47,5 +47,5 @@ class Web3Backend(backends.ModelBackend):
         user.save()
         return user
 
-    def _gen_user(self, address: str) -> User:
-        return User(**{ADDRESS_FIELD: address, 'is_active': True, 'address': address})
+    def _gen_user(self, wallet_address: str) -> User:
+        return User(**{ADDRESS_FIELD: wallet_address, 'is_active': True, 'wallet_address': wallet_address})
