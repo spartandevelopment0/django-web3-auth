@@ -56,10 +56,8 @@ setup(
         'web3auth',
     ],
     install_requires=[
-        'web3',
-        'rlp',
-        'eth_utils',
-        'eth_hash',
+        'eth-account',
+        'eth-utils',
         'Django>=4.0',
         'djangorestframework',
         'djangorestframework-simplejwt',

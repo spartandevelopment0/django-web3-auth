@@ -1,6 +1,6 @@
-from web3 import Account
 from eth_utils import is_hex_address, to_checksum_address
-from eth_hash.auto import keccak
+from eth_account import Account
+from eth_account.messages import defunct_hash_message
 from django import forms
 
 
@@ -12,15 +12,16 @@ def sig_to_vrs(sig):
 
 
 def hash_personal_message(msg):
-    padded = "\x19Ethereum Signed Message:\n" + str(len(msg)) + msg
-    return keccak(bytes(padded, 'utf8'))
+    message_hash = defunct_hash_message(text=msg)
+    return message_hash
 
 
 def recover_to_addr(msg, sig):
     msghash = hash_personal_message(msg)
     vrs = sig_to_vrs(sig)
-    pubkey = Account.recover(msghash, signature=(vrs[1], vrs[2], vrs[0]))
-    return to_checksum_address(pubkey)
+    signature = '0x' + ''.join([f'{part:02x}' for part in (vrs[1], vrs[2], vrs[0])])
+    address = Account._recover_hash(msghash, signature=signature)
+    return to_checksum_address(address)
 
 
 def validate_eth_address(value):

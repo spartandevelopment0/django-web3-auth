@@ -58,12 +58,12 @@ IMPORT_STRINGS = (
 )
 
 # List of settings that have been removed
-REMOVED_SETTINGS = ( )
+REMOVED_SETTINGS = ()
 
 
 class APISettings(_APISettings):  # pragma: no cover
     def __check_user_settings(self, user_settings):
-        from .utils import format_lazy
+        from web3auth.dj_rest_auth.utils import format_lazy
         SETTINGS_DOC = 'https://dj-rest-auth.readthedocs.io/en/latest/configuration.html'
 
         for setting in REMOVED_SETTINGS:
