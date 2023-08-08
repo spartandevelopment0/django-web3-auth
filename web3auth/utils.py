@@ -25,13 +25,16 @@ def recover_to_addr(msg, sig):
 
 
 def validate_eth_address(value):
-    if value == "0x0000000000000000000000000000000000000000":
-        raise forms.ValidationError(
-            'The zero Ethereum address is not allowed',
-            params={'value': value},
-        )
     if not is_hex_address(value):
         raise forms.ValidationError(
             '%s is not a valid Ethereum address' % value,
+            params={'value': value},
+        )
+
+
+def check_zero_address(value):
+    if value == "0x0000000000000000000000000000000000000000":
+        raise forms.ValidationError(
+            'The zero Ethereum address is not allowed',
             params={'value': value},
         )
