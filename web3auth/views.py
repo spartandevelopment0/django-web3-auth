@@ -1,11 +1,12 @@
 import random
 import string
 
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.forms import ValidationError
 from django.utils import timezone
+from django.core.cache import cache
 from django.contrib.auth import authenticate
 
 
@@ -13,18 +14,30 @@ from web3auth.dj_rest_auth.views import LoginView
 from web3auth.dj_rest_auth.models import get_token_model
 from web3auth.dj_rest_auth.utils import jwt_encode
 from .app_settings import api_settings
-from .serializers import Web3SignupLoginSerializer
-
-
+from .serializers import Web3SignupLoginSerializer, Web3SignupLoginRequestSerializer, Web3SignupLoginResponseSerializer
 
 class Web3SignupLoginView(LoginView):
-    serializer_class = Web3SignupLoginSerializer
     permission_classes = (AllowAny,)
 
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return Web3SignupLoginRequestSerializer
+        return Web3SignupLoginSerializer
+    
     def get(self, request, *args, **kwargs):
-        login_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
-        request.session['login_token'] = login_token
-        return Response({'data': login_token, 'success': True})
+        self.request = request
+        self.serializer = self.get_serializer(data=self.request.data)
+        self.serializer.is_valid(raise_exception=True)
+
+        login_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))        
+        cacheKey = api_settings.CACHE_KEY_PREFIX + response_serializer.data.wallet_address
+        cache.set(cacheKey, login_token, timeout=600) # 10min timeout
+
+        response_serializer = Web3SignupLoginResponseSerializer(
+                instance={'data': login_token},
+                context=self.get_serializer_context(),
+            )
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         self.request = request
@@ -48,27 +61,9 @@ class Web3SignupLoginView(LoginView):
 
 
     def web3_login(self):
-        wallet_address = self.serializer.validated_data.get("wallet_address")
-        signature = self.serializer.validated_data.get("signature")
-        token = self.request.session.get('login_token')
-        
-        if not token:
-            raise ValidationError("No login token in session, please request token again by sending GET request to this url")
-
-        user = authenticate(request=self.request, token=token, wallet_address=wallet_address, signature=signature)
-
-        if user is None:
-            raise ValidationError('Authentication with provided address and signature failed.')
-
-        if not user.is_active:
-            raise ValidationError('This user is not active.')
-
-        user.last_login = timezone.now()
-        user.save(update_fields=['last_login'])
-
-        del self.request.session['login_token']
-
-        self.user = user
+        self.user = self.serializer.validated_data['user']
+        self.user.last_login = timezone.now()
+        self.user.save(update_fields=['last_login'])
 
         token_model = get_token_model()
 

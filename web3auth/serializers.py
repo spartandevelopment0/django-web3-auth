@@ -1,33 +1,47 @@
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
+from django.core.cache import cache
 from web3auth.dj_rest_auth.serializers import LoginSerializer
-
+from .app_settings import api_settings
 from .utils import validate_eth_address
 from .backend import Web3Backend
+from django.utils.translation import gettext_lazy as _
 
-class Web3SignupLoginSerializer(LoginSerializer):
-    signature = serializers.CharField(max_length=132)
+class Web3SignupLoginRequestSerializer(serializers.Serializer):
     wallet_address = serializers.CharField(max_length=42, validators=[validate_eth_address])
-    
-    def get_fields(self):
-        fields = super().get_fields()
-        del fields['password']
-        return fields
 
+class Web3SignupLoginResponseSerializer(serializers.Serializer):
+    data = serializers.CharField(max_length=32)
+
+class Web3SignupLoginSerializer(serializers.Serializer):
+    wallet_address = serializers.CharField(max_length=42, validators=[validate_eth_address])    
+    signature = serializers.CharField(max_length=132)
+
+    @staticmethod
+    def validate_auth_user_status(user):
+        if not user.is_active:
+            msg = _('User account is disabled.')
+            raise exceptions.ValidationError(msg)
+        
     def validate(self, attrs):
+        login_token = cache.get(api_settings.CACHE_KEY_PREFIX)
+        if not login_token:
+            raise serializers.ValidationError('Login token has expired.')
+        
         # Instantiate Web3Backend and authenticate
         web3_auth_backend = Web3Backend()
-        self.user = web3_auth_backend.authenticate(
+        user = web3_auth_backend.authenticate(
             request=self.context.get('request'),
             wallet_address=attrs['wallet_address'],
-            token=self.context.get('request').session.get('login_token'),
+            token=login_token,
             signature=attrs['signature']
         )
 
-        if self.user is None:
-            raise serializers.ValidationError('Authentication with provided address and signature failed.')
+        if not user:
+            msg = _('Unable to log in with provided credentials.')
+            raise exceptions.ValidationError(msg)
         
-        # We assume that if a user isn't active, they can't log in
-        if not self.user.is_active:
-            raise serializers.ValidationError('This user is not active.')
+        # Did we get back an active user?
+        self.validate_auth_user_status(user)
 
+        attrs['user'] = user
         return attrs
