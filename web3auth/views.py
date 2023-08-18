@@ -15,15 +15,40 @@ from web3auth.dj_rest_auth.models import get_token_model
 from web3auth.dj_rest_auth.utils import jwt_encode
 from .app_settings import api_settings
 from .serializers import Web3SignupLoginSerializer, Web3SignupLoginRequestSerializer, Web3SignupLoginResponseSerializer
+from drf_yasg.utils import swagger_auto_schema
+# from rest_framework.filters import BaseFilterBackend
 
+# class SimpleFilterBackend(BaseFilterBackend):
+#     def get_schema_operation_parameters(self, view):
+#         return [{
+#             "name": "foo",
+#             "in": "query",
+#             "required": True,
+#             "description": "What foo does...",
+#             "schema": {"type": "string"}
+#         }]
+    
 class Web3SignupLoginView(GenericAPIView):
+    """
+    API endpoint for web3 login and signup.
+    """
     permission_classes = (AllowAny,)
+    pagination_class = None
+    filter_backends = None
+    # schema = CustomSchema()
+
+    def get_queryset(self): 
+        pass
+
+    # def get_schema_fields(self, view):
+    #     pass
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
             return Web3SignupLoginRequestSerializer
         return Web3SignupLoginSerializer
     
+    @swagger_auto_schema(query_serializer=Web3SignupLoginRequestSerializer, responses={200: Web3SignupLoginResponseSerializer(many=False)})
     def get(self, request, *args, **kwargs):
         ser_data = request.query_params
         self.serializer = self.get_serializer(data=ser_data, context=self.get_serializer_context())
