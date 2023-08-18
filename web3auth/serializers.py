@@ -7,14 +7,14 @@ from .backend import Web3Backend
 from django.utils.translation import gettext_lazy as _
 
 class Web3SignupLoginRequestSerializer(serializers.Serializer):
-    wallet_address = serializers.CharField(max_length=42, validators=[validate_eth_address])
+    wallet_address = serializers.CharField(max_length=42, required=True, validators=[validate_eth_address])
 
 class Web3SignupLoginResponseSerializer(serializers.Serializer):
     data = serializers.CharField(max_length=32)
 
 class Web3SignupLoginSerializer(serializers.Serializer):
-    wallet_address = serializers.CharField(max_length=42, validators=[validate_eth_address])    
-    signature = serializers.CharField(max_length=132)
+    wallet_address = serializers.CharField(max_length=42, required=True, validators=[validate_eth_address])    
+    signature = serializers.CharField(max_length=132, required=True)
 
     @staticmethod
     def validate_auth_user_status(user):
