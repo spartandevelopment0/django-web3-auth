@@ -8,15 +8,15 @@ from django.forms import ValidationError
 from django.utils import timezone
 from django.core.cache import cache
 from django.contrib.auth import authenticate
+from rest_framework.generics import GenericAPIView
 
-
-from web3auth.dj_rest_auth.views import LoginView
+#from web3auth.dj_rest_auth.views import LoginView
 from web3auth.dj_rest_auth.models import get_token_model
 from web3auth.dj_rest_auth.utils import jwt_encode
 from .app_settings import api_settings
 from .serializers import Web3SignupLoginSerializer, Web3SignupLoginRequestSerializer, Web3SignupLoginResponseSerializer
 
-class Web3SignupLoginView(LoginView):
+class Web3SignupLoginView(GenericAPIView):
     permission_classes = (AllowAny,)
 
     def get_serializer_class(self):
@@ -25,12 +25,12 @@ class Web3SignupLoginView(LoginView):
         return Web3SignupLoginSerializer
     
     def get(self, request, *args, **kwargs):
-        self.request = request
-        self.serializer = self.get_serializer(data=self.request.data)
+        ser_data = request.query_params
+        self.serializer = self.get_serializer(data=ser_data, context=self.get_serializer_context())
         self.serializer.is_valid(raise_exception=True)
 
         login_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))        
-        cacheKey = api_settings.CACHE_KEY_PREFIX + response_serializer.data.wallet_address
+        cacheKey = api_settings.CACHE_KEY_PREFIX + self.serializer.data['wallet_address']
         cache.set(cacheKey, login_token, timeout=600) # 10min timeout
 
         response_serializer = Web3SignupLoginResponseSerializer(

@@ -1,10 +1,11 @@
 from abc import abstractmethod, ABC
 from typing import Optional
-
+from rest_framework import serializers, exceptions
 from django.contrib.auth import get_user_model, backends
 from django.conf import settings
 
 from web3auth.utils import recover_to_addr
+from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
 
@@ -23,7 +24,8 @@ class Web3Backend(backends.ModelBackend):
     ) -> Optional[User]:
         # check if the address the user has provided matches the signature
         if wallet_address != recover_to_addr(token, signature):
-            raise ValueError('Wallet address does not match signature')
+            msg = _('Invalid signature')
+            raise exceptions.ValidationError(msg)
         else:
             # get address field for the user model
             kwargs = {

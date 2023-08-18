@@ -38,7 +38,7 @@ DEFAULTS = {
     'JWT_AUTH_RETURN_EXPIRATION': False,
     'JWT_AUTH_COOKIE_USE_CSRF': False,
     'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,
-    'CACHE_KEY_PREFIX': 'web3auth',
+    'CACHE_KEY_PREFIX': 'web3auth_',
 }
 
 # List of settings that may be in string import notation.

@@ -2,18 +2,18 @@ from rest_framework import serializers, exceptions
 from django.core.cache import cache
 from web3auth.dj_rest_auth.serializers import LoginSerializer
 from .app_settings import api_settings
-from .utils import validate_eth_address
+from .utils import validate_eth_address, check_zero_address
 from .backend import Web3Backend
 from django.utils.translation import gettext_lazy as _
 
 class Web3SignupLoginRequestSerializer(serializers.Serializer):
-    wallet_address = serializers.CharField(max_length=42, required=True, validators=[validate_eth_address])
+    wallet_address = serializers.CharField(max_length=42, required=True, validators=[validate_eth_address, check_zero_address])
 
 class Web3SignupLoginResponseSerializer(serializers.Serializer):
     data = serializers.CharField(max_length=32)
 
 class Web3SignupLoginSerializer(serializers.Serializer):
-    wallet_address = serializers.CharField(max_length=42, required=True, validators=[validate_eth_address])    
+    wallet_address = serializers.CharField(max_length=42, required=True, validators=[validate_eth_address, check_zero_address])    
     signature = serializers.CharField(max_length=132, required=True)
 
     @staticmethod
@@ -23,17 +23,20 @@ class Web3SignupLoginSerializer(serializers.Serializer):
             raise exceptions.ValidationError(msg)
         
     def validate(self, attrs):
-        login_token = cache.get(api_settings.CACHE_KEY_PREFIX)
+        wallet_address = attrs.get('wallet_address')
+        signature = attrs.get('signature')
+        login_token = cache.get(api_settings.CACHE_KEY_PREFIX + wallet_address)
         if not login_token:
-            raise serializers.ValidationError('Login token has expired.')
-        
+            msg = _('Login token has expired.')
+            raise exceptions.ValidationError(msg)
+
         # Instantiate Web3Backend and authenticate
         web3_auth_backend = Web3Backend()
         user = web3_auth_backend.authenticate(
             request=self.context.get('request'),
-            wallet_address=attrs['wallet_address'],
+            wallet_address=wallet_address,
             token=login_token,
-            signature=attrs['signature']
+            signature=signature
         )
 
         if not user:
