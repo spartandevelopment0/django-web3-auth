@@ -23,20 +23,24 @@ class Web3Backend(backends.ModelBackend):
             signature
     ) -> Optional[User]:
         # check if the address the user has provided matches the signature
-        if wallet_address != recover_to_addr(token, signature):
+        try:
+            if wallet_address != recover_to_addr(token, signature):
+                msg = _('Invalid signature')
+                raise exceptions.ValidationError(msg)
+            else:
+                # get address field for the user model
+                kwargs = {
+                    f"{ADDRESS_FIELD}__iexact": wallet_address
+                }
+                # try to get user with provided data
+                user = User.objects.filter(**kwargs).first()
+                if user is None:
+                    # create the user if it does not exist
+                    return self.create_user(wallet_address)
+                return user
+        except Exception as e:
             msg = _('Invalid signature')
             raise exceptions.ValidationError(msg)
-        else:
-            # get address field for the user model
-            kwargs = {
-                f"{ADDRESS_FIELD}__iexact": wallet_address
-            }
-            # try to get user with provided data
-            user = User.objects.filter(**kwargs).first()
-            if user is None:
-                # create the user if it does not exist
-                return self.create_user(wallet_address)
-            return user
 
     def create_user(self, wallet_address):
         user = self._gen_user(wallet_address)
