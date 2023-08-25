@@ -41,7 +41,7 @@ class Web3SignupLoginView(GenericAPIView):
         self.serializer = self.get_serializer(data=ser_data, context=self.get_serializer_context())
         self.serializer.is_valid(raise_exception=True)
 
-        login_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))        
+        login_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(31))        
         cacheKey = api_settings.CACHE_KEY_PREFIX + self.serializer.data['wallet_address']
         cache.set(cacheKey, login_token, timeout=600) # 10min timeout
 
