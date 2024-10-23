@@ -15,7 +15,7 @@ from web3auth.dj_rest_auth.models import get_token_model
 from web3auth.dj_rest_auth.utils import jwt_encode
 from .app_settings import api_settings
 from .serializers import Web3SignupLoginSerializer, Web3SignupLoginRequestSerializer, Web3SignupLoginResponseSerializer
-from drf_yasg.utils import swagger_auto_schema
+from drf_spectacular.utils import extend_schema
 
 from dj_rest_auth.serializers import JWTSerializerWithExpiration
 
@@ -27,15 +27,15 @@ class Web3SignupLoginView(GenericAPIView):
     pagination_class = None
     filter_backends = None
 
-    def get_queryset(self): 
+    def get_queryset(self):
         pass
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
             return Web3SignupLoginRequestSerializer
         return Web3SignupLoginSerializer
-    
-    @swagger_auto_schema(query_serializer=Web3SignupLoginRequestSerializer, responses={200: Web3SignupLoginResponseSerializer(many=False)})
+
+    @extend_schema(query_serializer=Web3SignupLoginRequestSerializer, responses={200: Web3SignupLoginResponseSerializer(many=False)})
     def get(self, request, *args, **kwargs):
         ser_data = request.query_params
         self.serializer = self.get_serializer(data=ser_data, context=self.get_serializer_context())
@@ -51,7 +51,7 @@ class Web3SignupLoginView(GenericAPIView):
             )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(request_body=Web3SignupLoginSerializer, responses={200: JWTSerializerWithExpiration(many=False)})
+    @extend_schema(request_body=Web3SignupLoginSerializer, responses={200: JWTSerializerWithExpiration(many=False)})
     def post(self, request, *args, **kwargs):
         self.request = request
         self.serializer = self.get_serializer(data=self.request.data)
