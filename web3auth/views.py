@@ -1,57 +1,74 @@
 import random
 import string
 
+from dj_rest_auth.serializers import JWTSerializerWithExpiration
+from django.core.cache import cache
+from django.utils import timezone
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, permissions
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from django.forms import ValidationError
-from django.utils import timezone
-from django.core.cache import cache
-from django.contrib.auth import authenticate
-from rest_framework.generics import GenericAPIView
 
-#from web3auth.dj_rest_auth.views import LoginView
+# from web3auth.dj_rest_auth.views import LoginView
 from web3auth.dj_rest_auth.models import get_token_model
 from web3auth.dj_rest_auth.utils import jwt_encode
-from .app_settings import api_settings
-from .serializers import Web3SignupLoginSerializer, Web3SignupLoginRequestSerializer, Web3SignupLoginResponseSerializer
-from drf_yasg.utils import swagger_auto_schema
 
-from dj_rest_auth.serializers import JWTSerializerWithExpiration
+from .app_settings import api_settings
+from .serializers import (
+    Web3SignupLoginSerializer,
+    Web3SignupLoginRequestSerializer,
+    Web3SignupLoginResponseSerializer,
+)
+
 
 class Web3SignupLoginView(GenericAPIView):
     """
     API endpoint for web3 login and signup.
     """
+
     permission_classes = (AllowAny,)
     pagination_class = None
     filter_backends = None
 
-    def get_queryset(self): 
+    def get_queryset(self):
         pass
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
             return Web3SignupLoginRequestSerializer
         return Web3SignupLoginSerializer
-    
-    @swagger_auto_schema(query_serializer=Web3SignupLoginRequestSerializer, responses={200: Web3SignupLoginResponseSerializer(many=False)})
+
+    @swagger_auto_schema(
+        query_serializer=Web3SignupLoginRequestSerializer,
+        responses={200: Web3SignupLoginResponseSerializer(many=False)},
+    )
     def get(self, request, *args, **kwargs):
         ser_data = request.query_params
-        self.serializer = self.get_serializer(data=ser_data, context=self.get_serializer_context())
+        self.serializer = self.get_serializer(
+            data=ser_data, context=self.get_serializer_context()
+        )
         self.serializer.is_valid(raise_exception=True)
 
-        login_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(31))        
-        cacheKey = api_settings.CACHE_KEY_PREFIX + self.serializer.data['wallet_address']
-        cache.set(cacheKey, login_token, timeout=600) # 10min timeout
+        login_token = "".join(
+            random.SystemRandom().choice(string.ascii_uppercase + string.digits)
+            for _ in range(31)
+        )
+        cacheKey = (
+            api_settings.CACHE_KEY_PREFIX + self.serializer.data["wallet_address"]
+        )
+        cache.set(cacheKey, login_token, timeout=600)  # 10min timeout
 
         response_serializer = Web3SignupLoginResponseSerializer(
-                instance={'data': login_token},
-                context=self.get_serializer_context(),
-            )
+            instance={"data": login_token},
+            context=self.get_serializer_context(),
+        )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(request_body=Web3SignupLoginSerializer, responses={200: JWTSerializerWithExpiration(many=False)})
+    @swagger_auto_schema(
+        request_body=Web3SignupLoginSerializer,
+        responses={200: JWTSerializerWithExpiration(many=False)},
+    )
     def post(self, request, *args, **kwargs):
         self.request = request
         self.serializer = self.get_serializer(data=self.request.data)
@@ -59,7 +76,7 @@ class Web3SignupLoginView(GenericAPIView):
 
         self.web3_login()
         return self.get_web3_response()
-    
+
     def get_response_serializer(self):
         if api_settings.USE_JWT:
 
@@ -72,18 +89,19 @@ class Web3SignupLoginView(GenericAPIView):
             response_serializer = api_settings.TOKEN_SERIALIZER
         return response_serializer
 
-
     def web3_login(self):
-        self.user = self.serializer.validated_data['user']
+        self.user = self.serializer.validated_data["user"]
         self.user.last_login = timezone.now()
-        self.user.save(update_fields=['last_login'])
+        self.user.save(update_fields=["last_login"])
 
         token_model = get_token_model()
 
         if api_settings.USE_JWT:
             self.access_token, self.refresh_token = jwt_encode(self.user)
         elif token_model:
-            self.token = api_settings.TOKEN_CREATOR(token_model, self.user, self.serializer)
+            self.token = api_settings.TOKEN_CREATOR(
+                token_model, self.user, self.serializer
+            )
 
         if api_settings.SESSION_LOGIN:
             self.process_login()
@@ -95,24 +113,29 @@ class Web3SignupLoginView(GenericAPIView):
             from rest_framework_simplejwt.settings import (
                 api_settings as jwt_settings,
             )
-            access_token_expiration = (timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME)
-            refresh_token_expiration = (timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME)
+
+            access_token_expiration = (
+                timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME
+            )
+            refresh_token_expiration = (
+                timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME
+            )
             return_expiration_times = api_settings.JWT_AUTH_RETURN_EXPIRATION
             auth_httponly = api_settings.JWT_AUTH_HTTPONLY
 
             data = {
-                'user': self.user,
-                'access': self.access_token,
+                "user": self.user,
+                "access": self.access_token,
             }
 
             if not auth_httponly:
-                data['refresh'] = self.refresh_token
+                data["refresh"] = self.refresh_token
             else:
-                data['refresh'] = ""
+                data["refresh"] = ""
 
             if return_expiration_times:
-                data['access_expiration'] = access_token_expiration
-                data['refresh_expiration'] = refresh_token_expiration
+                data["access_expiration"] = access_token_expiration
+                data["refresh_expiration"] = refresh_token_expiration
 
             serializer = serializer_class(
                 instance=data,
@@ -129,5 +152,6 @@ class Web3SignupLoginView(GenericAPIView):
         response = Response(serializer.data, status=status.HTTP_200_OK)
         if api_settings.USE_JWT:
             from web3auth.dj_rest_auth.jwt_auth import set_jwt_cookies
+
             set_jwt_cookies(response, self.access_token, self.refresh_token)
         return response
