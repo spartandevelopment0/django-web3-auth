@@ -40,7 +40,7 @@ class Web3SignupLoginView(GenericAPIView):
         return Web3SignupLoginSerializer
 
     @swagger_auto_schema(
-        query_serializer=Web3SignupLoginRequestSerializer,
+        query_serializer=Web3SignupLoginRequestSerializer(),
         responses={200: Web3SignupLoginResponseSerializer(many=False)},
     )
     def get(self, request, *args, **kwargs):

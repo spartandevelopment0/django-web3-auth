@@ -27,25 +27,35 @@ class Web3Backend(backends.ModelBackend):
                 user = User.objects.filter(**kwargs).first()
                 if user is None:
                     # create the user if it does not exist
-                    return self.create_user(wallet_address)
+                    return self.create_user(
+                        wallet_address, ip_address=get_request_ip(request)
+                    )
                 return user
         except Exception:
             msg = _("Invalid signature")
             raise exceptions.ValidationError(msg)
 
-    def create_user(self, wallet_address):
-        user = self._gen_user(wallet_address)
+    def create_user(self, wallet_address, **extra):
+        user = self._gen_user(wallet_address, **extra)
         fields = [field.name for field in User._meta.fields]
         if ADDRESS_FIELD != DEFAULT_ADDRESS_FIELD and "username" in fields:
             user.username = user.generate_username()
         user.save()
         return user
 
-    def _gen_user(self, wallet_address: str) -> User:
+    def _gen_user(self, wallet_address: str, **extra) -> User:
         return User(
             **{
                 ADDRESS_FIELD: wallet_address,
-                "is_active": True,
-                "wallet_address": wallet_address,
-            }
+            },
+            is_active=True,
+            wallet_address=wallet_address,
+            **extra,
         )
+
+
+def get_request_ip(request):
+    if x_forwarded_for := request.META.get("HTTP_X_FORWARDED_FOR"):
+        return x_forwarded_for.split(",")[0]
+
+    return request.META.get("REMOTE_ADDR")
