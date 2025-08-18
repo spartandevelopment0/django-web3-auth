@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from django.conf import settings
@@ -7,6 +8,7 @@ from rest_framework import exceptions
 from web3auth.utils import recover_to_addr
 
 User = get_user_model()
+LOGGER = logging.getLogger(__name__)
 
 DEFAULT_ADDRESS_FIELD = "username"
 ADDRESS_FIELD = getattr(settings, "WEB3AUTH_USER_ADDRESS_FIELD", DEFAULT_ADDRESS_FIELD)
@@ -27,9 +29,13 @@ class Web3Backend(backends.ModelBackend):
                 user = User.objects.filter(**kwargs).first()
                 if user is None:
                     # create the user if it does not exist
-                    return self.create_user(
-                        wallet_address, ip_address=get_request_ip(request)
-                    )
+                    ip_address = get_request_ip(request)
+                    if not ip_address:
+                        LOGGER.warning(
+                            "Couldn't get IP address while creating user for wallet: %s",
+                            wallet_address,
+                        )
+                    return self.create_user(wallet_address, ip_address=ip_address)
                 return user
         except Exception:
             msg = _("Invalid signature")

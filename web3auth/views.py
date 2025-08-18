@@ -10,7 +10,6 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-# from web3auth.dj_rest_auth.views import LoginView
 from web3auth.dj_rest_auth.models import get_token_model
 from web3auth.dj_rest_auth.utils import jwt_encode
 
