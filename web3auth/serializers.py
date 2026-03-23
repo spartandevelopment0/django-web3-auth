@@ -1,10 +1,10 @@
 from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers, exceptions
+from rest_framework import exceptions, serializers
 
 from .app_settings import api_settings
 from .backend import Web3Backend
-from .utils import validate_eth_address, check_zero_address
+from .utils import check_zero_address, validate_eth_address
 
 
 class Web3SignupLoginRequestSerializer(serializers.Serializer):
@@ -42,7 +42,8 @@ class Web3SignupLoginSerializer(serializers.Serializer):
             raise exceptions.ValidationError(msg)
 
         # Instantiate Web3Backend and authenticate
-        web3_auth_backend = Web3Backend()
+        web3_auth_backend_cls = api_settings.WEB3_BACKEND
+        web3_auth_backend = web3_auth_backend_cls()
         user = web3_auth_backend.authenticate(
             request=self.context.get("request"),
             wallet_address=wallet_address,

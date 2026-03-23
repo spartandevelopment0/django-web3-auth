@@ -17,6 +17,7 @@ DEFAULTS = {
 
     'REGISTER_SERIALIZER': 'web3auth.dj_rest_auth.registration.serializers.RegisterSerializer',
     'WEB3_SIGNUP_LOGIN_SERIALIZER': 'web3auth.serializers.Web3SignupLoginSerializer',
+    'WEB3_BACKEND': 'web3auth.backend.Web3Backend',
 
     'REGISTER_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',),
 
@@ -57,6 +58,7 @@ IMPORT_STRINGS = (
     'REGISTER_SERIALIZER',
     'REGISTER_PERMISSION_CLASSES',
     'WEB3_SIGNUP_LOGIN_SERIALIZER',
+    'WEB3_BACKEND',
 )
 
 # List of settings that have been removed

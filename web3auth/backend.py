@@ -2,9 +2,10 @@ import logging
 from typing import Optional
 
 from django.conf import settings
-from django.contrib.auth import get_user_model, backends
+from django.contrib.auth import backends, get_user_model
 from django.utils.translation import gettext_lazy as _
 from rest_framework import exceptions
+
 from web3auth.utils import recover_to_addr
 
 User = get_user_model()
@@ -37,18 +38,27 @@ class Web3Backend(backends.ModelBackend):
                         )
                     return self.create_user(wallet_address, ip_address=ip_address)
                 return user
+        except exceptions.ValidationError as e:
+            raise e
         except Exception:
             msg = _("Invalid signature")
             raise exceptions.ValidationError(msg)
 
-    def create_user(self, wallet_address, **extra):
-        user = self._gen_user(wallet_address, **extra)
-        fields = [field.name for field in User._meta.fields]
-        if ADDRESS_FIELD != DEFAULT_ADDRESS_FIELD and "username" in fields:
-            user.username = user.generate_username()
-        user.save()
-        return user
+    def can_create_user(self, wallet_address, **extra):
+        return True
 
+    def create_user(self, wallet_address, **extra):
+        if (self.can_create_user(wallet_address, **extra)):        
+            user = self._gen_user(wallet_address, **extra)
+            fields = [field.name for field in User._meta.fields]
+            if ADDRESS_FIELD != DEFAULT_ADDRESS_FIELD and "username" in fields:
+                user.username = user.generate_username()
+            user.save()
+            return user
+        else:
+            msg = _("User creation is not allowed.")
+            raise exceptions.ValidationError(msg)
+        
     def _gen_user(self, wallet_address: str, **extra) -> User:
         return User(
             **{
