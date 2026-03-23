@@ -5,7 +5,7 @@ from dj_rest_auth.serializers import JWTSerializerWithExpiration
 from django.core.cache import cache
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status, permissions
+from rest_framework import permissions, status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -15,7 +15,6 @@ from web3auth.dj_rest_auth.utils import jwt_encode
 
 from .app_settings import api_settings
 from .serializers import (
-    Web3SignupLoginSerializer,
     Web3SignupLoginRequestSerializer,
     Web3SignupLoginResponseSerializer,
 )
@@ -36,7 +35,7 @@ class Web3SignupLoginView(GenericAPIView):
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
             return Web3SignupLoginRequestSerializer
-        return Web3SignupLoginSerializer
+        return api_settings.WEB3_SIGNUP_LOGIN_SERIALIZER
 
     @swagger_auto_schema(
         query_serializer=Web3SignupLoginRequestSerializer(),
@@ -65,7 +64,7 @@ class Web3SignupLoginView(GenericAPIView):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        request_body=Web3SignupLoginSerializer,
+        request_body=api_settings.WEB3_SIGNUP_LOGIN_SERIALIZER,
         responses={200: JWTSerializerWithExpiration(many=False)},
     )
     def post(self, request, *args, **kwargs):

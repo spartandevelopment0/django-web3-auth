@@ -2,7 +2,6 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework.settings import APISettings as _APISettings
 
-
 USER_SETTINGS = getattr(settings, "REST_WEB3_AUTH", None)
 
 DEFAULTS = {
@@ -17,6 +16,7 @@ DEFAULTS = {
     'PASSWORD_CHANGE_SERIALIZER': 'web3auth.dj_rest_auth.serializers.PasswordChangeSerializer',
 
     'REGISTER_SERIALIZER': 'web3auth.dj_rest_auth.registration.serializers.RegisterSerializer',
+    'WEB3_SIGNUP_LOGIN_SERIALIZER': 'web3auth.serializers.Web3SignupLoginSerializer',
 
     'REGISTER_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',),
 
